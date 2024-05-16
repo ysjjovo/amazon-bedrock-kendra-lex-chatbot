@@ -1,7 +1,7 @@
 import os
 import sys 
 import json
-
+import boto3
 if "LAMBDA_TASK_ROOT" in os.environ:
     envLambdaTaskRoot = os.environ["LAMBDA_TASK_ROOT"]
     sys.path.insert(0, "/var/lang/lib/python3.9/site-packages")
@@ -12,34 +12,44 @@ from langchain.llms.bedrock import Bedrock
 from langchain.prompts import PromptTemplate
 
 REGION_NAME = os.environ['aws_region']
-
+AK = os.environ['ak']
+SK = os.environ['sk']
 MODEL_TYPE = "CLAUDE"
 
 retriever = AmazonKendraRetriever(
     index_id=os.environ['kendra_index_id'],
     region_name=REGION_NAME
 )
-
+bedrock_client =  boto3.client(
+        service_name="bedrock-runtime",
+        region_name=REGION_NAME,
+        aws_access_key_id=AK,
+        aws_secret_access_key=SK,
+    )
 if(MODEL_TYPE == "CLAUDE"):
     llm = Bedrock(
+        client=bedrock_client,
         model_id="anthropic.claude-v2:1",
         endpoint_url="https://bedrock-runtime." + REGION_NAME + ".amazonaws.com",
         model_kwargs={"temperature": 0.7, "max_tokens_to_sample": 500}
     )
 
     condense_question_llm = Bedrock(
+        client=bedrock_client,
         model_id="anthropic.claude-instant-v1",
         endpoint_url="https://bedrock-runtime." + REGION_NAME + ".amazonaws.com",
         model_kwargs={"temperature": 0.7, "max_tokens_to_sample": 300}
     )
 else:
     llm = Bedrock(
+        client=bedrock_client,
         model_id="ai21.j2-ultra-v1",
         endpoint_url="https://bedrock-runtime." + REGION_NAME + ".amazonaws.com",
         model_kwargs={"temperature": 0.7, "maxTokens": 500, "numResults": 1}
     )
 
     condense_question_llm = Bedrock(
+        client=bedrock_client,
         model_id="ai21.j2-mid-v1",
         endpoint_url="https://bedrock-runtime." + REGION_NAME + ".amazonaws.com",
         model_kwargs={"temperature": 0.7, "maxTokens": 300, "numResults": 1}
